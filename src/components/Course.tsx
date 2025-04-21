@@ -1,11 +1,11 @@
 import { CourseType } from "@/types/types";
 import styles from "@/styles/Course.module.css";
 
-export default function Course({
-  name,
-  selected,
-  onClick,
-}: CourseType & { onClick: () => void; selected?: boolean }) {
+interface CourseProps extends CourseType {
+  selected?: boolean;
+  onClick?: () => void;
+}
+export default function Course({ name, selected, onClick }: CourseProps) {
   return (
     <button
       type="button"
