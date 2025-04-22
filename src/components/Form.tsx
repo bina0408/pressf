@@ -4,7 +4,6 @@ import { ProfessorType } from "@/types/types";
 import { useEffect, useRef, useState } from "react";
 import styles from "@/styles/Form.module.css";
 import Course from "./Course";
-import { rateProfessor } from "@/lib/professor";
 import Modal from "./Modal";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,25 +29,48 @@ export default function Form({ courses, id }: ProfessorType) {
 
   const searchParams = useSearchParams();
 
+  const handleSubmit = async (formData: FormData) => {
+    if (!session) {
+      router.replace(`/professors/${id}?${formDataToUrl(formData)}`, {
+        scroll: false,
+      });
+      return setShowModal(true);
+    }
+
+    try {
+      const response = await fetch("/api/professors/rate", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit rating");
+      }
+
+      ref.current?.reset();
+      setCourses([]);
+      setRate(0);
+      setText("");
+      router.refresh();
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      // Handle error state here
+    }
+  };
+
   useEffect(() => {
     const courses = searchParams.getAll("courses");
     const rate = searchParams.get("rate");
     const text = searchParams.get("text");
     if (courses.length < 1 || !rate || !session) return;
+
     const formData = new FormData();
     courses.forEach((course) => formData.append("courses", course));
     formData.append("rate", rate);
     formData.append("text", text || ``);
     formData.append(`professor`, id);
-    rateProfessor(formData).then(() => {
-      router.replace(`/professors/${id}`, {
-        scroll: false,
-      });
-      ref.current?.reset();
-      setCourses([]);
-      setRate(0);
-      setText("");
-    });
+
+    handleSubmit(formData);
   }, [id, router, searchParams, session, ref]);
 
   return (
@@ -59,7 +81,7 @@ export default function Form({ courses, id }: ProfessorType) {
             You need to sign in to leave a review.
             <br />
             <br />
-            Don’t worry—your <b>review will be anonymous</b>, and your name will
+            Don&apos;t worry—your <b>review will be anonymous</b>, and your name will
             be <b>replaced with a randomly generated one</b>.
             <br />
             <br />
@@ -79,29 +101,12 @@ export default function Form({ courses, id }: ProfessorType) {
           </button>
         </Modal>
       )}
-      <form
-        className={styles.form}
-        ref={ref}
-        action={async (FormData) => {
-          if (!session) {
-            router.replace(`/professors/${id}?${formDataToUrl(FormData)}`, {
-              scroll: false,
-            });
-            return setShowModal(true);
-          }
-          ref.current?.reset();
-          setCourses([]);
-          setRate(0);
-          setText("");
-          FormData.append(`professor`, id);
-          await rateProfessor(FormData);
-        }}
-      >
+      <form className={styles.form} ref={ref} action={handleSubmit}>
         <section>
           <h1>Share your experience!</h1>
           <p>
             Your feedback helps other students and improves the quality of
-            teaching. Don’t worry—your review will be anonymous, and your name
+            teaching. Don&apos;t worry—your review will be anonymous, and your name
             will be replaced with a randomly generated one.
           </p>
           <p className={styles.required}>* Indicates required question</p>

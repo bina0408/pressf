@@ -6,7 +6,7 @@ export default function Header() {
     <>
       <div className={styles.bgBox}>
         <div className={styles.bg}>
-          <Image src="/cover.png" alt="Backgroud>" fill priority unoptimized />
+          <Image src="/cover.png" alt="Background" fill priority unoptimized />
         </div>
       </div>
       <section>
