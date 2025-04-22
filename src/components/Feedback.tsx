@@ -4,6 +4,11 @@ import { FeedbackType } from "@/types/types";
 import Course from "./Course";
 import styles from "@/styles/Feedback.module.css";
 
+interface FeedbackProps extends FeedbackType {
+  courseFilter: string;
+  setCourseFilter: (course: string) => void;
+}
+
 export default function Feedback({
   rate,
   author,
@@ -12,22 +17,18 @@ export default function Feedback({
   text,
   courseFilter,
   setCourseFilter,
-}: FeedbackType & {
-  courseFilter: string;
-  setCourseFilter: (course: string) => void;
-}) {
+}: FeedbackProps) {
   return (
     <li
-      className={[
-        styles.feedback,
-        courseFilter == `` || courses.some(({ id }) => id == courseFilter)
-          ? ``
-          : styles.hidden,
-      ].join(` `)}
+      className={`${styles.feedback} ${
+        courseFilter === "" || courses.some(({ id }) => id === courseFilter)
+          ? ""
+          : styles.hidden
+      }`}
     >
       <h1>{rate.toFixed(1)}</h1>
       <div className={styles.author}>
-        <p>{typeof author == `string` ? author : ``}</p>
+        <p>{typeof author === "string" ? author : ""}</p>
         <div>
           {courses.map((course) => (
             <Course
@@ -35,7 +36,7 @@ export default function Feedback({
               {...course}
               selected={courseFilter === course.id}
               onClick={() =>
-                setCourseFilter(course.id === courseFilter ? `` : course.id)
+                setCourseFilter(course.id === courseFilter ? "" : course.id)
               }
             />
           ))}

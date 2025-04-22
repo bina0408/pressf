@@ -1,7 +1,7 @@
 "use client";
 
-import { createCourse } from "@/lib/course";
-import { createProfessor } from "@/lib/professor";
+// import { createCourse } from "@/lib/course";
+// import { createProfessor } from "@/lib/professor";
 import { CourseType } from "@/types/types";
 import { useRef, useState } from "react";
 import styles from "@/styles/Form.module.css";
@@ -10,13 +10,23 @@ import Input from "./Input";
 import { signIn, useSession } from "next-auth/react";
 import Modal from "./Modal";
 
-export default function Create({ courses }: { courses: CourseType[] }) {
-  const ref = useRef<HTMLFormElement>(null);
-  const ref2 = useRef<HTMLFormElement>(null);
+interface CreateProps {
+  courses: CourseType[];
+  onCreateProfessor: (data: FormData) => Promise<void>;
+  onCreateCourse: (data: FormData) => Promise<void>;
+}
+
+export default function Create({
+  courses,
+  onCreateProfessor,
+  onCreateCourse,
+}: CreateProps) {
+  const professorFormRef = useRef<HTMLFormElement>(null);
+  const courseFormRef = useRef<HTMLFormElement>(null);
   const [selectedCourses, setCourses] = useState<string[]>([]);
   const { data: session } = useSession();
 
-  if (!session)
+  if (!session){
     return (
       <Modal title="Admin" onClose={() => {}}>
         <p>Sign in to create a professor or course</p>
@@ -33,19 +43,18 @@ export default function Create({ courses }: { courses: CourseType[] }) {
         </button>
       </Modal>
     );
-
-  if (session.user.email != process.env.NEXT_PUBLIC_ADMIN_EMAIL)
-    return <div>Only admin can create professors and courses</div>;
-
+  }
   return (
     <>
       <form
         className={styles.form}
-        ref={ref}
-        action={async (FormData) => {
-          ref.current?.reset();
+        ref={professorFormRef}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          await onCreateProfessor(formData);
+          professorFormRef.current?.reset();
           setCourses([]);
-          await createProfessor(FormData);
         }}
       >
         <section>
@@ -140,11 +149,13 @@ export default function Create({ courses }: { courses: CourseType[] }) {
         </button>
       </form>
       <form
-        ref={ref2}
+        ref={courseFormRef}
         className={styles.form}
-        action={async (FormData) => {
-          ref2.current?.reset();
-          await createCourse(FormData);
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.currentTarget);
+          await onCreateCourse(formData);
+          courseFormRef.current?.reset();
         }}
       >
         <section>
