@@ -1,13 +1,28 @@
 "use client";
 
-import { CourseType, ProfessorType } from "@/types/types";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import styles from "@/styles/Professors.module.css";
 import Input from "./Input";
 import Course from "./Course";
 import Modal from "./Modal";
 import ProfileImage from "./ProfileImage";
+import { fetchProfessors, fetchCourses } from "@/api/api";
+
+interface ProfessorType {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
+  rating: number;
+  info: string;
+  courses: CourseType[];
+}
+
+interface CourseType {
+  id: string;
+  name: string;
+}
 
 const Arrow = ({
   name,
@@ -62,24 +77,42 @@ const Courses = ({
   </div>
 );
 
-export default function Professors({
-  professors,
-  courses,
-}: {
-  professors: ProfessorType[];
-  courses: CourseType[];
-}) {
+export default function Professors() {
   const [modal, setModal] = useState<boolean>(false);
+  const [professors, setProfessors] = useState<ProfessorType[]>([]);
+  const [courses, setCourses] = useState<CourseType[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState<string>("");
   const [ratingAscending, setRatingAscending] = useState<boolean>(false);
   const [nameAscending, setNameAscending] = useState<boolean>(false);
-  const [lastFilter, setLastFilter] = useState<`rating` | `name`>(`rating`);
+  const [lastFilter, setLastFilter] = useState<"rating" | "name">("rating");
   const [courseFilter, setCourseFilter] = useState<string>("");
 
   const [sortedProfessors, setSortedProfessors] = useState<
     (ProfessorType & { unvisible?: boolean })[]
   >([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [professorsData, coursesData] = await Promise.all([
+          fetchProfessors(),
+          fetchCourses(),
+        ]);
+        setProfessors(professorsData);
+        setCourses(coursesData);
+        setLoading(false);
+      } catch (err) {
+        setError("Failed to load data");
+        setLoading(false);
+        console.error("Error fetching data:", err);
+      }
+    };
+
+    loadData();
+  }, []);
 
   useEffect(() => {
     const filteredProfessors = professors.map((professor) => ({
@@ -91,16 +124,17 @@ export default function Professors({
         ) || !professor.name.toLowerCase().includes(search.toLowerCase()),
     }));
 
-    if (lastFilter === `rating`)
+    if (lastFilter === "rating") {
       filteredProfessors.sort((a, b) =>
         ratingAscending ? a.rating - b.rating : b.rating - a.rating
       );
-    else if (lastFilter === `name`)
+    } else if (lastFilter === "name") {
       filteredProfessors.sort((a, b) =>
         nameAscending
           ? b.name.localeCompare(a.name)
           : a.name.localeCompare(b.name)
       );
+    }
 
     setSortedProfessors(filteredProfessors);
   }, [
@@ -111,6 +145,14 @@ export default function Professors({
     lastFilter,
     professors,
   ]);
+
+  if (loading) {
+    return <div className={styles.loading}>Loading professors...</div>;
+  }
+
+  if (error) {
+    return <div className={styles.error}>{error}</div>;
+  }
 
   return (
     <section className={styles.professors}>
@@ -145,7 +187,7 @@ export default function Professors({
           selected={ratingAscending}
           onClick={() => {
             setRatingAscending(!ratingAscending);
-            setLastFilter(`rating`);
+            setLastFilter("rating");
           }}
         />
         <Arrow
@@ -153,7 +195,7 @@ export default function Professors({
           selected={nameAscending}
           onClick={() => {
             setNameAscending(!nameAscending);
-            setLastFilter(`name`);
+            setLastFilter("name");
           }}
         />
         <Courses
@@ -180,9 +222,7 @@ export default function Professors({
               className={unvisible ? styles.unvisible : ``}
               key={`${id}-name`}
             >
-              <Link prefetch href={`professors/${id}`}>
-                {name}
-              </Link>
+              <Link href={`professors/${id}`}>{name}</Link>
             </h3>,
             <div
               className={[
@@ -198,7 +238,7 @@ export default function Professors({
                   selected={courseFilter === course.name}
                   onClick={() =>
                     setCourseFilter((old) =>
-                      old == course.name ? `` : course.name
+                      old === course.name ? "" : course.name
                     )
                   }
                 />

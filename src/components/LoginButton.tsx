@@ -1,15 +1,29 @@
 "use client";
 
-import { signIn, signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { loginWithGoogle, logout, getCurrentUser } from "@/api/api";
 
 export default function LoginButton() {
-  const { data: session } = useSession();
+  interface UserSession {
+    name: string;
+  }
+
+  const [session, setSession] = useState<UserSession | null>(null);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const user = await getCurrentUser();
+      setSession(user);
+    };
+    fetchSession();
+  }, []);
+
   return session ? (
     <div>
-      <p>Welcome, {session.user?.name}!</p>
-      <button onClick={() => signOut()}>Sign Out</button>
+      <p>Welcome, {session.name}!</p>
+      <button onClick={() => logout()}>Sign Out</button>
     </div>
   ) : (
-    <button onClick={() => signIn("google")}>Sign in with Google</button>
+    <button onClick={() => loginWithGoogle()}>Sign in with Google</button>
   );
 }
