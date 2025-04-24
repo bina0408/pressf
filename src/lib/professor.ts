@@ -1,155 +1,61 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { connectToDatabase } from "./db";
-import Professor from "@/models/professor";
-import Feedback from "@/models/feedback";
-import { ProfessorType } from "@/types/types";
-import { getCourses } from "./course";
+import { FeedbackType, ProfessorType } from "@/types/types";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { put } from "@vercel/blob";
 
-const toResponse = ({
-  _id,
-  name,
-  email,
-  image,
-  rating,
-  history,
-  info,
-  courses,
-  createdAt,
-  updatedAt,
-}: ProfessorType) => ({
-  id: _id!.toString(),
-  name,
-  email,
-  image,
-  rating,
-  history,
-  info,
-  courses: courses.map(({ _id, name }) => ({
-    id: _id!.toString(),
-    name,
-  })),
-  createdAt,
-  updatedAt,
-});
+const API_BASE_URL = process.env.API_BASE_URL;
 
-export const getProfessors = async () => {
-  await connectToDatabase();
-  try {
-    const { courses } = await getCourses();
-    const professors = await Professor.find().populate("courses").lean();
-    return {
-      courses,
-      professors: professors.map((professor) => toResponse(professor)),
-    };
-  } catch (error) {
-    console.log(error);
-    return { message: `error getting professors` };
-  }
+export const getProfessors = async (): Promise<Array<ProfessorType>> => {
+  const response = await fetch(`${API_BASE_URL}/professors`);
+  if (!response.ok) throw new Error("Failed to fetch professors");
+  return response.json();
 };
 
-const firstNames = [
-  "Alice",
-  "Bob",
-  "Charlie",
-  "David",
-  "Emma",
-  "Fiona",
-  "George",
-  "Hannah",
-];
-
-const lastNames = [
-  "Smith",
-  "Johnson",
-  "Brown",
-  "Williams",
-  "Jones",
-  "Garcia",
-  "Miller",
-  "Davis",
-];
-
-const getRandomElement = (arr: string[]): string =>
-  arr[Math.floor(Math.random() * arr.length)];
-
-const generateRandomName = () =>
-  `${getRandomElement(firstNames)} ${getRandomElement(lastNames)}`;
-
-export const getProfessor = async (id: string) => {
-  await connectToDatabase();
-  try {
-    const professor = await Professor.findById(id).populate(`courses`).lean();
-    if (!professor) return { message: `professor not found` };
-    const feedbacks = (
-      await Feedback.find({
-        professor: id,
-        text: { $ne: null },
-      })
-        .populate(`courses`)
-        .lean()
-    ).map(({ _id, rate, text, createdAt, updatedAt, courses, professor }) => ({
-      id: _id!.toString(),
-      rate,
-      text,
-      createdAt,
-      updatedAt,
-      professor: `${professor}`,
-      courses: courses.map(({ _id, name }) => ({
-        id: _id!.toString(),
-        name,
-      })),
-      author: generateRandomName(),
-    }));
-    return { professor: toResponse(professor), feedbacks };
-  } catch (error) {
-    console.log(error);
-    return { message: `error getting professor` };
-  }
+export const getProfessor = async (
+  id: string
+): Promise<{ professor: ProfessorType; feedbacks: Array<FeedbackType> }> => {
+  const response = await fetch(`${API_BASE_URL}/professors/${id}`);
+  if (!response.ok) throw new Error("Failed to fetch professor");
+  return response.json();
 };
 
-export const rateProfessor = async (formData: FormData) => {
+export const rateProfessor = async (
+  formData: FormData
+): Promise<{ message: string }> => {
   const session = await getServerSession(authOptions);
   if (!session) return { message: `Unauthorized` };
-  await connectToDatabase();
   const rate = Number(formData.get("rate"));
   const text = formData.get("text");
   const author = session.user.id;
   const professor = formData.get("professor");
   const courses = formData.getAll("courses");
-  try {
-    await Feedback.updateOne(
-      { author, professor },
-      {
-        rate,
-        text: text?.toString().length ? text : undefined,
-        courses,
-        author,
-        professor,
-      },
-      { upsert: true }
-    );
-    revalidatePath(`/professor/${professor}`);
-    const feedback = await Feedback.find({ professor });
-    const average =
-      feedback.reduce((acc, { rate }) => acc + rate, 0) / feedback.length;
-    await Professor.findByIdAndUpdate(professor, { rating: average });
-    return { message: `feedback created` };
-  } catch (error) {
-    console.log(error);
-    return { message: `error creating feedback` };
-  }
+  const response = await fetch(`${API_BASE_URL}/feedback`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.user.token}`,
+    },
+    body: JSON.stringify({
+      rate,
+      text: text?.toString().length ? text : undefined,
+      courses,
+      author,
+      professor,
+    }),
+  });
+  if (!response.ok) throw new Error("Failed to create feedback");
+  return { message: `feedback created` };
 };
 
-export const createProfessor = async (formData: FormData) => {
+export const createProfessor = async (
+  formData: FormData
+): Promise<ProfessorType | { message: string }> => {
   const session = await getServerSession(authOptions);
   if (!session) return { message: `Unauthorized` };
   if (session.user.email != process.env.NEXT_PUBLIC_ADMIN_EMAIL)
     return { message: `Only admin can create courses` };
-  await connectToDatabase();
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const imageFile = formData.get("image") as File;
@@ -161,16 +67,23 @@ export const createProfessor = async (formData: FormData) => {
       })
     : undefined;
   try {
-    const newProfessor = await Professor.create({
-      name,
-      email,
-      info,
-      courses,
-      image: blob?.url,
+    const response = await fetch(`${API_BASE_URL}/professors`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.user}`,
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        info,
+        courses,
+        image: blob?.url,
+      }),
     });
-    newProfessor.save();
+    if (!response.ok) throw new Error("Failed to create professor");
     revalidatePath(`/`);
-    return toResponse(newProfessor);
+    return response.json();
   } catch (error) {
     console.log(error);
     return { message: `error creating user` };
