@@ -1,62 +1,47 @@
+
 # PressF
 
-## Overview
-PressF is a Next.js-based web application designed to provide a structured platform for managing courses, professors, and user interactions. It integrates authentication, feedback, and profile management features. Thia project is adapted specifically for our university.
+PressF is a Next.js-based web application developed to assist students in exploring professors' academic backgrounds and selecting suitable courses. The platform offers features like user profiles, course and professor listings, feedback systems, and an admin dashboard.
 
 ## Features
-- User Profiles – Users can create and manage their profiles.
-- Course Management – View and interact with available courses.
-- Professor Listings – Browse and manage professor profiles.
-- Feedback System – Submit and view feedback for courses or professors.
-- Authentication – Secure login system with potential OAuth support.
-- Admin Dashboard – Admin users can manage content and users.
-- Interactive UI – Forms and modals enhance user interactions.
 
-## Prerequisites
-Ensure you have the following installed before setting up the project:
-- Node.js (Latest LTS version recommended)
-- npm (Comes with Node.js) or yarn
-- Git (Optional but recommended)
+- **Course Management**: Browse and interact with available courses.
+- **Professor Listings**: View detailed professor profiles.
+- **Feedback System**: Submit and read feedback on courses and professors.
+- **Admin Dashboard**: Manage users, courses, professors, and feedback.
 
 ## Installation
 
 1. Clone the repository:
-   
-   git clone https://github.com/your-repo/pressf.git
+   ```bash
+   git clone https://github.com/bina0408/pressf.git
+   ```
+2. Navigate to the project directory:
+   ```bash
    cd pressf
-   
-2. Install dependencies:
-   
+   ```
+3. Install dependencies:
+   ```bash
    npm install
-   
-   Or, if using yarn:
-   
-   yarn install
-   
-## Usage
+   ```
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-### Running in Development Mode
-Start the development server with:
-npm run dev
-Visit http://localhost:3000/ in your browser.
+## Technologies Used
 
-### Building and Running for Production
-To build the project:
-npm run build
-To start the production server:
-npm run start
-## Environment Variables
-Create a .env.local file in the root directory and add required environment variables.
-
-## Available Scripts
-- npm run dev - Start the development server
-- npm run build - Build the project for production
-- npm run start - Start the production server
-- npm run lint - Run linting checks
+- **Next.js**: React framework for server-side rendering.
+- **TypeScript**: Typed superset of JavaScript.
+- **Tailwind CSS**: Utility-first CSS framework.
+- **MongoDB**: NoSQL database for data storage.
+- **Prisma**: ORM for database interactions.
 
 ## Contributing
-We welcome contributions! Follow these steps:
-1. Fork the repository
-2. Create a new branch
-3. Make changes and commit them
-4. Open a pull request
+
+Contributions are welcome! Please fork the repository and submit a pull request.
+
+## License
+
+This project is licensed under the GPL-3.0 License.
+
